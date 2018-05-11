@@ -1,6 +1,7 @@
 import React,{ Component } from 'react';
-import Modal from 'react-modal';
+// import Modal from 'react-modal';
 
+import Modal from './Modal.js';
 import HelloWorld from '../src/helloworld';
 import Article from '../src/article';
 import Grid from './Grid';
@@ -12,15 +13,19 @@ class App extends Component {
     super();
     this.state = {
       articles: null,
-      articleJSX: null,
       showModal: true,
       error: null,
       loaded: false,
+      foundCountStates: [],
+      requiredFind: [],
+      showSummaries: [],
+      swapPos: [],
+      selectedArticle: null
     };
-    
-    this.notifyArticleClick = this.notifyArticleClick.bind(this);
-    this.swapArticlePosition = this.swapArticlePosition.bind(this);
+
+    this.handleOnArticleClick = this.handleOnArticleClick.bind(this);
     this.closeModal = this.closeModal.bind(this);
+    
   }
   
   componentWillMount() {
@@ -35,33 +40,25 @@ class App extends Component {
         loaded: true
       });
     }).then((result) => {
-      //render articles
-      let articleJSX = [];
+      let foundCountStates= [],
+          requiredFind = [],
+          showSummaries = [],
+          swapPos = [];
 
       this.state.articles.map((article, idx) => {
-        let imageSize = this.calculateButtonSizes();
-        articleJSX.push(
-          <Article
-            key={idx}
-            index={idx}
-            headline={article.headline}
-            summary={article.summary}
-            images={article.images}
-            image={article.image}
-            link={article.share_link}
-            category={article.category}
-            width={imageSize[0]}
-            height={imageSize[1]}
-            notify={this.notifyArticleClick}
-            foundCount= {0}
-            requiredFind={Math.floor(Math.random()*(4-2)+2)}
-          />
-        );
+        foundCountStates.push(0);
+        requiredFind.push(Math.floor(Math.random()*(4-2)+2));
+        showSummaries.push(false);
+        swapPos.push(null);
       });
-      this.setState({articleJSX: articleJSX});
+      this.setState({
+        foundCountStates: foundCountStates,
+        requiredFind: requiredFind,
+        showSummaries: showSummaries,
+        swapPos: swapPos
+      });
     }).catch((error) => {
       console.log(error);
-
       this.setState({
         error: error,
         loaded: true
@@ -69,88 +66,89 @@ class App extends Component {
     });
   }
 
-  // 3:2 ratio 
-  calculateButtonSizes(){
-    let x = Math.floor((Math.random() * 500) + 200);
-    return [x, x-(x/3)];
-  }
-
-  // Callback function to notify app component when article is clicked.
-  // Swap article position with another random article if clicked.
-  notifyArticleClick(foundCount, requiredFind, index){
-    // console.log(foundCount, requiredFind);
-    if (foundCount !== requiredFind){
-      let randomArticlePos = Math.floor(Math.random() * this.state.articleJSX.length);
-      this.swapArticlePosition(index, randomArticlePos, foundCount, requiredFind);
+  // Updates foundCount and clicked article index
+  // If < requiredFind update next swapPos else toggle summary
+  handleOnArticleClick(index){
+    let updatedFoundCount = this.updateFoundCount(index);
+    let requiredFind = this.state.requiredFind[index];
+    let updatedSwaps = this.state.swapPos;
+    
+    console.log(updatedFoundCount, requiredFind);
+    console.log(this.state.showSummaries, this.state.showSummaries[index]);
+    
+    if (updatedFoundCount < requiredFind){
+      updatedSwaps[index] = Math.floor(Math.random() * this.state.articles.length);
+      this.setState({
+        swapPos: updatedSwaps,
+        selectedArticle: index
+      });
+    } else {
+      this.toggleSummary(index);
     }
   }
   
-  // Swap article positions
-  // Horribly inefficient but couldn't find a quick workaround for now
-  swapArticlePosition(articlePos1, articlePos2, foundCount, requiredFind){
-    let articlesCopy = this.state.articles;
-    // Swap in the article state array
-    let temp = articlesCopy[articlePos1];
-    articlesCopy[articlePos1] = articlesCopy[articlePos2];
-    articlesCopy[articlePos2] = temp;
-  
-    let articleJSX = [];
-
-    articlesCopy.map((article, idx) => {
-      let imageSize = this.calculateButtonSizes();
-      articleJSX.push(
-        <Article
-          key={idx}
-          index={idx}
-          headline={article.headline}
-          summary={article.summary}
-          images={article.images}
-          image={article.image}
-          link={article.share_link}
-          category={article.category}
-          width={imageSize[0]}
-          height={imageSize[1]}
-          notify={this.notifyArticleClick}
-          foundCount= {foundCount}
-          requiredFind= {requiredFind}
-        />
-        );
-      });
-    // Update articles and articleJSX states and rerender
-      this.setState({
-        articles: articlesCopy,
-        articleJSX: articleJSX
-      });
+  updateFoundCount(index){
+    let arr = this.state.foundCountStates;
+    arr[index] = arr[index] + 1;
+    this.setState({
+      foundCountStates: arr
+    });
+    return arr[index];
   }
-
+  
+  toggleSummary(index){
+    let arr = this.state.showSummaries;
+    arr[index] = !arr[index];
+    console.log(this.state);
+    this.setState({
+      showSummaries: arr,
+      selectedArticle: index
+    });
+  }
+  
   closeModal(){
     this.setState({
       showModal: false
-    })
+    });
   }
 
   render() {
-    const {loaded, error, articles} = this.state;
-
+    const {loaded, error, selectedArticle, swapPos} = this.state;
     if (error) {
-      return <div>Sorry! Something went wrong</div>
-    } else if (!loaded || !this.state.articleJSX) {
-      return <div>Loading...</div>
+      return <div>Sorry! Something went wrong</div>;
+    } else if (!loaded) {
+      return <div>Loading...</div>;
     } else {
+      this.articleJSX = [];
+
+      this.state.articles.map((article, idx) => {
+        this.articleJSX.push(
+          <Article
+            key={idx}
+            index={idx}
+            headline={article.headline}
+            summary={article.summary}
+            image={article.image}
+            link={article.share_link}
+            notify={this.handleOnArticleClick}
+            showSummaries={this.state.showSummaries[idx]}
+          />
+        );
+      });
       return (
         <div>
           <Modal isOpen={this.state.showModal}
                   ariaHideApp={false}
                   className='modal'
-                  onRequestClose={this.closeModal}>
-            You should subscribe if you want your articles.<br/>
-            You may need to find your article a couple of times.
-          </Modal>
+                  onRequestClose={this.closeModal}/>
           <HelloWorld/>
-          <Grid articles={this.state.articleJSX}/>
+          <Grid
+            articles={this.articleJSX}
+            swapPos={swapPos[selectedArticle]}
+            selectedArticle={selectedArticle}
+            />
         </div>
       );
-
     }
   }
 }

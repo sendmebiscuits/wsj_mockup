@@ -1,6 +1,5 @@
 import React,{ Component } from 'react';
 
-import Article from '../src/article';
 import Column from './Column';
 
 export default class Grid extends Component {
@@ -9,13 +8,30 @@ export default class Grid extends Component {
         
     this.state={
       articles: this.props.articles
-    }
+    };
   }
 
   componentWillReceiveProps(nextProps){
     if (this.props.articles !== nextProps.articles){
       this.setState({articles: nextProps.articles});
-    } 
+    }
+    if ((this.props.swapPos !== nextProps.swapPos)&&
+        (this.props.selectedArticle !== nextProps.selectedArticle)){
+      this.swapArticlePosition(nextProps.selectedArticle, nextProps.swapPos);
+    }
+  }
+
+  swapArticlePosition(selectedPos, swapPos){
+    let updatedArticles = this.state.articles,
+        swapArticle = updatedArticles[swapPos],
+        temp;
+    temp = updatedArticles[selectedPos];
+    updatedArticles[selectedPos] = swapArticle;
+    updatedArticles[swapPos] = temp;
+    
+    this.setState({
+      articles: updatedArticles
+    });
   }
 
   renderColumns(){
@@ -36,11 +52,10 @@ export default class Grid extends Component {
   }
     
   render(){
-    const {articles} = this.props;
     return (
       <div className='article_flex'>
         {this.renderColumns()}
       </div>
-    )
+    );
   }
 }

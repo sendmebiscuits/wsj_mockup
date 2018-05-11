@@ -5,7 +5,13 @@ import React, { Component } from 'react';
 class HelloWorld extends Component {
   //this is where you put the JSX to render on the page
   render() {
-    return <h1><img src='assets/wsj-logo.svg' /></h1>;
+    return (
+      <div className='header'>
+        <h1 className='logo'>
+          <img src='assets/wsj-logo.svg' />
+        </h1>
+      </div>
+    );
   }
 };
 
